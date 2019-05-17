@@ -23,6 +23,24 @@ app.post('/api/user', (req,res) => {
     })
 })
 
+app.post('/api/user/login', (req,res) => {
+
+    // check if email/user already exists
+    User.findOne({'email': req.body.email}, (err,user)=> {
+        if(!user) res.json({message: 'Auth failed. User does not exist.'})
+
+        // check if password matches
+        user.comparePassword((req.body.password, (err, isMatch) => {
+            if(err) throw err;
+
+            if(!isMatch) return res.status(400).json({
+                message: 'Wrong password'
+            });
+
+            res.status(200).send(isMatch)
+        }))
+    })
+})
 
 const port = process.env.PORT || 3000;
 
