@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const SALT_I = 10; // salt iteration
+const jwt = require('jsonwebtoken');
 
 const userSchema = mongoose.Schema({
     email: {
@@ -13,6 +14,9 @@ const userSchema = mongoose.Schema({
         type: String,
         required: true,
         minlength: 6      
+    },
+    token: {
+        type: String
     }
 })
 
@@ -42,6 +46,32 @@ userSchema.methods.comparePassword = function(candidatePassword, callback){
     bcrypt.compare(candidatePassword, this.password, (err, isMatch) => {
         if(err) throw err;
         callback(null,isMatch)
+    })
+}
+
+// storing token
+userSchema.methods.generateToken = function(cb){
+    var user = this;
+    var token = jwt.sign(user._id.toHextString(), 'supersecret');
+
+    user.token = token;
+    user.save(function(cb){
+        user.save((err,user) => {
+            if(err) return cb(err);
+            cb(null, user);
+        })
+    })
+}
+
+
+userSchema.statics.findByToken = function(token,cb) {
+    const user =this;
+
+    jwt.verify(token, 'supersecret', (err,decode)=> {
+        user.findOne({"_id":decode, "token":token}, (err,user)=> {
+            if(err) return cb(err);
+            cb(null,user)
+        })
     })
 }
 
